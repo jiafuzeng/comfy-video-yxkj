@@ -43,12 +43,11 @@ class VideoConcatNode:
                 duration = float(probe['format']['duration'])
             except Exception:
                 continue
+            
+            selected_paths.append(path)
             if total + duration > target_duration and selected_paths:
                 break
-            selected_paths.append(path)
-            total += duration
-            if total >= target_duration:
-                break
+            
         if not selected_paths:
             # 兜底：选第一个视频
             selected_paths = [os.path.join(target_dir, files[0])]
@@ -56,7 +55,7 @@ class VideoConcatNode:
         temp_dir = folder_paths.get_temp_directory()
         # 生成唯一文件名
         timestamp = int(time.time() * 1000)
-        random_num = random.randint(1000, 9999)
+        random_num = random.randint(1, 9999)
         # 生成临时输出路径
         merged_path = os.path.join(temp_dir, f"concat_merged_{timestamp}_{random_num}.mp4")
         # 使用ffmpeg-python拼接视频（只拼接视频流，不处理音频）
