@@ -1,1 +1,1 @@
-# comfy-video-yxkj
+# ComfyUI Video Nodes
