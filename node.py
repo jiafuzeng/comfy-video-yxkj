@@ -1,6 +1,7 @@
 import os
 import random
 import time
+import tempfile
 import ffmpeg
 import folder_paths
 
@@ -51,8 +52,8 @@ class VideoConcatNode:
         if not selected_paths:
             # 兜底：选第一个视频
             selected_paths = [os.path.join(target_dir, files[0])]
-        # 获取临时目录
-        temp_dir = folder_paths.get_temp_directory()
+        # 在/tmp下创建临时目录
+        temp_dir = tempfile.mkdtemp(dir='/tmp')
         # 生成唯一文件名
         timestamp = int(time.time() * 1000)
         random_num = random.randint(1, 9999)
