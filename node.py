@@ -83,3 +83,24 @@ class VideoConcatNode:
         # 确保节点在输入变化时重新执行
         return float("nan")
 
+class VideoAudioDurationNode:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "audio": ("AUDIO",),
+            }
+        }
+
+    RETURN_TYPES = ("FLOAT",)
+    RETURN_NAMES = ("duration_sec",)
+    FUNCTION = "get_duration"
+    CATEGORY = "Video"
+
+    def get_duration(self, audio):
+        waveform = audio["waveform"]
+        sample_rate = audio["sample_rate"]
+        # waveform shape: [1, C, N] or [1, 1, N]
+        num_samples = waveform.shape[-1]
+        duration = float(num_samples) / float(sample_rate)
+        return (duration,)
