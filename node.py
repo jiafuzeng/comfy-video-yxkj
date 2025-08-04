@@ -4,6 +4,47 @@ import time
 import tempfile
 import ffmpeg
 import folder_paths
+import av
+import torch
+import hashlib
+
+
+def f32_pcm_yxkj(wav: torch.Tensor) -> torch.Tensor:
+    """Convert audio to float 32 bits PCM format."""
+    if wav.dtype.is_floating_point:
+        return wav
+    elif wav.dtype == torch.int16:
+        return wav.float() / (2 ** 15)
+    elif wav.dtype == torch.int32:
+        return wav.float() / (2 ** 31)
+    raise ValueError(f"Unsupported wav dtype: {wav.dtype}")
+
+def load_yxkj(filepath: str) -> tuple[torch.Tensor, int]:
+    with av.open(filepath) as af:
+        if not af.streams.audio:
+            raise ValueError("No audio stream found in the file.")
+
+        stream = af.streams.audio[0]
+        sr = stream.codec_context.sample_rate
+        n_channels = stream.channels
+
+        frames = []
+        length = 0
+        for frame in af.decode(streams=stream.index):
+            buf = torch.from_numpy(frame.to_ndarray())
+            if buf.shape[0] != n_channels:
+                buf = buf.view(-1, n_channels).t()
+
+            frames.append(buf)
+            length += buf.shape[1]
+
+        if not frames:
+            raise ValueError("No audio frames decoded.")
+
+        wav = torch.cat(frames, dim=1)
+        wav = f32_pcm_yxkj(wav)
+        return wav, sr
+
 
 class VideoConcatNode:
     @classmethod
@@ -105,3 +146,44 @@ class VideoAudioDurationNode:
         num_samples = waveform.shape[-1]
         duration = float(num_samples) / float(sample_rate)
         return (duration,)
+
+
+
+def strip_path(path):
+    #This leaves whitespace inside quotes and only a single "
+    #thus ' ""test"' -> '"test'
+    #consider path.strip(string.whitespace+"\"")
+    #or weightier re.fullmatch("[\\s\"]*(.+?)[\\s\"]*", path).group(1)
+    path = path.strip()
+    if path.startswith("\""):
+        path = path[1:]
+    if path.endswith("\""):
+        path = path[:-1]
+    return path
+
+class LoadAudio_yxkj:
+    @classmethod
+    def INPUT_TYPES(s):
+        #Hide ffmpeg formats if ffmpeg isn't available
+        return {
+            "required": {
+                "audio_file": ("STRING", {"default": "input/", "vhs_path_extensions": ['wav','mp3','ogg','m4a','flac']}),
+                },
+        }
+
+    RETURN_TYPES = ("AUDIO",)
+    RETURN_NAMES = ("audio",)
+    CATEGORY = "audio_yxkj"
+    FUNCTION = "load_audio"
+    def load_audio(self, audio_file):
+        audio_file = strip_path(audio_file)
+        wav, sr = load_yxkj(audio_file)
+        return ({'waveform': wav, 'sample_rate': sr},)
+
+    @classmethod
+    def IS_CHANGED(s):
+        return True
+
+    @classmethod
+    def VALIDATE_INPUTS(s):
+        return True
