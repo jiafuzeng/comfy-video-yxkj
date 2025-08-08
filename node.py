@@ -3,10 +3,9 @@ import random
 import time
 import tempfile
 import ffmpeg
-import folder_paths
 import av
 import torch
-import hashlib
+import time
 
 
 def f32_pcm_yxkj(wav: torch.Tensor) -> torch.Tensor:
@@ -181,8 +180,9 @@ class LoadAudio_yxkj:
         return ({'waveform': wav, 'sample_rate': sr},)
 
     @classmethod
-    def IS_CHANGED(s):
-        return True
+    def IS_CHANGED(s, audio_file):
+        # 基于文件路径和当前时间戳生成唯一值，确保每次都重新执行
+        return f"{audio_file}_{time.time()}"
 
     @classmethod
     def VALIDATE_INPUTS(s):
